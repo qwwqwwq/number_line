@@ -1,0 +1,12 @@
+<div ng-controller="NumberLineController">
+    <number-line binding="number_line"></number-line>
+
+    <button ng-click="change('units', '-')">- 1</button>
+    <button ng-click="change('tenths', '-')">- 1/10</button>
+    <button ng-click="change('hundredths', '-')">- 1/100</button>
+    <button ng-click="change('hundredths', '+')">+ 1/100</button>
+    <button ng-click="change('tenths', '+')">+ 1/10</button>
+    <button ng-click="change('units', '+')">+ 1</button>
+
+    <span>{{number}}</span>
+</div>
