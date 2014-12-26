@@ -54,7 +54,7 @@ App.controller('NumberLineController', ['$scope',
 App.config(['$routeProvider', function($routeProvider) {
     $routeProvider
         .when('/', {
-                  templateUrl: 'views/number_line.html',
+                  templateUrl: 'app/views/number_line.html',
                   controller: 'NumberLineController'
               });
 }]);
