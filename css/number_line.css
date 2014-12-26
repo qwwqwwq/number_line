@@ -9,7 +9,16 @@
     shape-rendering: crispEdges;
     stroke-width: 1.5px;
 }
+
 .axis .minor {
-    stroke: red;
+    stroke: #666;
     stroke-width: 1px;
+}
+
+.axis .major {
+    stroke-width: 2px;
+}
+
+text {
+    font: bold 48px monospace;
 }

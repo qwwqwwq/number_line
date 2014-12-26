@@ -1,7 +1,7 @@
 'use strict';
 
 function valsToFloat(vals) {
-    return vals.units + vals.tenths/10 + vals.hundredths/100;
+    return Number(vals.units + '.' + vals.tenths + vals.hundredths);
 }
 
 function rangesEqual(range0, range1) {
@@ -15,32 +15,36 @@ angular.module('d3Directives').directive(
             restrict: 'EA',
             scope: true,
             link: function (scope, element, attrs) {
-                var oldPos, newPos, oldDomain, newDomain, marginProp, ticks;
-                oldDomain = [0, 1];
-                newDomain = [0, 1];
+                var oldPos, newPos, domain, viewableDomain,
+                    oldDomain, newDomain, marginProp, ticks;
+                domain = [0, 1];
+                oldDomain = domain;
                 oldPos = 0;
                 newPos = 0;
-                marginProp = 0.00;
+                marginProp = 0.05;
 
                 function getNewDomain(newPos, oldDomain) {
                     return d3.extent(oldDomain.concat([newPos]));
                 }
 
                 function getTenAndHundredTicks(min, max) {
+                    var units = [];
                     var tens = [];
                     var hundreds = [];
                     var cursor, new_max;
                     cursor = Math.round(min*100);
                     new_max = Math.round(max*100);
                     while(cursor <= new_max) {
+                        if(!(cursor % 100)) {
+                            units.push(cursor/100);
+                        }
                         if(!(cursor % 10)) {
                             tens.push(cursor/100);
                         }
                         hundreds.push(cursor/100);
                         cursor += 1
                     }
-                    console.log([tens, hundreds]);
-                    return [tens, hundreds];
+                    return [units, tens, hundreds];
                 }
 
                 function getViewableDomain(_domain) {
@@ -62,25 +66,30 @@ angular.module('d3Directives').directive(
                 }
 
                 scope.render = function(newVals, oldVals) {
-                    console.log(["Render.", newVals, oldVals]);
-                    oldPos = newPos;
                     oldDomain = newDomain;
+                    oldPos = newPos;
                     newPos = valsToFloat(newVals);
-                    newDomain = getNewDomain(newPos, oldDomain);
-                    ticks = getTenAndHundredTicks(newDomain[0],newDomain[1])
+                    newDomain = getNewDomain(newPos, domain);
+                    viewableDomain = getViewableDomain(newDomain);
+                    ticks = getTenAndHundredTicks(viewableDomain[0],viewableDomain[1]);
 
                     d3.select("svg").remove();
                     var width = 960,
                         height = 500;
 
                     var x = d3.scale.linear()
-                        .domain(getViewableDomain(newDomain))
+                        .domain(viewableDomain)
                         .range([0, width]);
+
+                    var discreteX = d3.scale.quantile()
+                        .domain([1,2,3,4,5,6,7,8,9,10,11,12])
+                        .range([0, width]);
+
+                    console.log(discreteX.quantiles());
 
                     var xAxis = d3.svg.axis()
                         .scale(x)
                         .ticks(0);
-
 
                     var svg = d3.select("div").append("svg")
                         .attr("width", width)
@@ -95,6 +104,7 @@ angular.module('d3Directives').directive(
                     gAxis.selectAll("line").data(ticks[0], function(d) { return d; })
                         .enter()
                         .append("line")
+                        .attr("class", "major")
                         .attr("y1", 0)
                         .attr("y2", -60)
                         .attr("x1", x)
@@ -103,9 +113,18 @@ angular.module('d3Directives').directive(
                     gAxis.selectAll("line").data(ticks[1], function(d) { return d; })
                         .enter()
                         .append("line")
-                        .attr("class", "minor")
+                        .attr("class", "major")
                         .attr("y1", 0)
                         .attr("y2", -40)
+                        .attr("x1", x)
+                        .attr("x2", x);
+
+                    gAxis.selectAll("line").data(ticks[2], function(d) { return d; })
+                        .enter()
+                        .append("line")
+                        .attr("class", "minor")
+                        .attr("y1", 0)
+                        .attr("y2", -20)
                         .attr("x1", x)
                         .attr("x2", x);
 
@@ -118,13 +137,20 @@ angular.module('d3Directives').directive(
                         .transition()
                         .attr("x", x(newPos))
                         .duration(500)
-                        .delay(100);
+                        .delay(500);
 
-                    if(!rangesEqual(oldDomain, newDomain)) {
-                        transition(x, xAxis, gAxis,
-                                   getViewableDomain(oldDomain),
-                                   getViewableDomain(newDomain));
-                    }
+                    svg.selectAll("text")
+                        .data([newVals.units, '.', newVals.tenths, newVals.hundredths])
+                        .enter()
+                        .append("text")
+                        .attr("x", function(d, i) { return 350 + (i*32); })
+                        .attr("y", function(d, i) { return 150; })
+                        .attr("dy", ".35em")
+                        .text(function(d) { return d; });
+
+                    transition(x, xAxis, gAxis,
+                               getViewableDomain(oldDomain),
+                               getViewableDomain(newDomain));
                 };
                 scope.$watch(attrs.binding, function (newVals, oldVals) {
                     return scope.render(newVals, oldVals);
