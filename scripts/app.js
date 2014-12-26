@@ -15,12 +15,13 @@ App.controller('NumberLineController', ['$scope',
     function($scope) {
         function decimalToVals(number) {
             var units, tenths, hundredths, sign;
-            if( number <= 0 ) {
-                sign = -1;
-            } else if (number > 0) {
-                sign = 1;
+            number = Math.round(number*100);
+            if( number < 0 ) {
+                sign = "-";
+                number = number * -1;
+            } else if (number >= 0) {
+                sign = "";
             }
-            number = number*100;
             hundredths = Math.round((number % 10));
             number = Math.round((number - hundredths)/10);
             tenths = Math.round((number % 10));
@@ -33,15 +34,18 @@ App.controller('NumberLineController', ['$scope',
         }
 
         $scope.number_line = {
-            units: 0,
-            tenths: 0,
-            hundredths: 0
+            vals: {
+                units: 0,
+                tenths: 0,
+                hundredths: 0,
+                sign: ""
+            },
+            number: 0
         };
-        $scope.number = 0;
 
         $scope.change = function(amount) {
-            $scope.number += amount;
-            $scope.number_line = decimalToVals($scope.number);
+            $scope.number_line.number += amount;
+            $scope.number_line.vals = decimalToVals($scope.number_line.number);
             console.log($scope.number_line);
         }
     }

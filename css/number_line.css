@@ -1,5 +1,5 @@
 .axis text {
-    font: 10px sans-serif;
+    font: 16px sans-serif;
 }
 
 .axis line,
@@ -19,6 +19,6 @@
     stroke-width: 2px;
 }
 
-text {
+.main {
     font: bold 48px monospace;
 }

@@ -1,7 +1,12 @@
 'use strict';
 
 function valsToFloat(vals) {
-    return Number(vals.units + '.' + vals.tenths + vals.hundredths);
+    var magnitude = vals.units + vals.tenths/10 + vals.hundredths/100;
+    if (vals.sign == '-') {
+        return magnitude * -1;
+    } else {
+        return magnitude;
+    }
 }
 
 function rangesEqual(range0, range1) {
@@ -15,10 +20,13 @@ angular.module('d3Directives').directive(
             restrict: 'EA',
             scope: true,
             link: function (scope, element, attrs) {
-                var oldPos, newPos, domain, viewableDomain,
+                var oldPos, newPos, domain,
+                    newViewableDomain,
+                    oldViewableDomain,
                     oldDomain, newDomain, marginProp, ticks;
                 domain = [0, 1];
                 oldDomain = domain;
+                newDomain = domain;
                 oldPos = 0;
                 newPos = 0;
                 marginProp = 0.05;
@@ -55,102 +63,170 @@ angular.module('d3Directives').directive(
                     return domain;
                 }
 
-                function transition(x, xAxis, gAxis, domain0, domain1) {
-                    gAxis.transition().duration(500).tween("axis", function(d, i) {
+                function domainSize(_domain) {
+                    return (_domain[1] - _domain[0]);
+                }
+
+                function drawTickSet(gAxis, x, ticks, height, clazz) {
+                    gAxis.selectAll("line").data(ticks, function(d) { return d; })
+                        .enter()
+                        .append("line")
+                        .attr("class", clazz)
+                        .attr("y1", 0)
+                        .attr("y2", -1*height)
+                        .attr("x1", x)
+                        .attr("x2", x);
+                }
+
+                function drawTicks(gAxis, x, domain) {
+                    ticks = getTenAndHundredTicks(domain[0],domain[1]);
+                    drawTickSet(gAxis, x, ticks[0], 60, "major");
+                    drawTickSet(gAxis, x, ticks[1], 40, "");
+                    drawTickSet(gAxis, x, ticks[2], 20, "minor");
+
+                    gAxis.selectAll("text").data(ticks[0], function(d) { return d; })
+                        .enter()
+                        .append("text")
+                        .text(function(d) {return d;})
+                        .attr("class", "axis")
+                        .attr("y", 20)
+                        .attr("x", function(d) { return x( d ) - 4 });
+                }
+
+                function transition(svg, x, xAxis, gAxis, domain0, domain1) {
+                    x.domain(domain1);
+                    svg.select("axis").transition().duration(500).call(xAxis);
+
+/*
+
+                    trans.tween("axis", function(d, i) {
                         var i = d3.interpolate(domain0, domain1);
                         return function(t) {
                             x.domain(i(t));
                             gAxis.call(xAxis);
                         }
                     });
+
+                    trans = trans.duration(5000);
+
+                    if( domainSize(domain1) < domainSize(domain0) ) {
+                        console.log("smaller");
+                        trans = trans.delay(500);
+                    }
+                    */
+
+                }
+
+                function digitChange(newVals, oldVals) {
+                    var output = [];
+                    if( newVals.sign != oldVals.sign) {
+                        output.push('sign');
+                    }
+                    if( newVals.units != oldVals.units) {
+                        output.push('unit');
+                    }
+
+                    if( newVals.tenths != oldVals.tenths) {
+                        output.push('tenth');
+                    }
+
+                    if( newVals.hundredths != oldVals.hundredths) {
+                        output.push('hundredth');
+                    }
+
+                    return output;
                 }
 
                 scope.render = function(newVals, oldVals) {
                     oldDomain = newDomain;
                     oldPos = newPos;
-                    newPos = valsToFloat(newVals);
+                    newPos = newVals.number;
                     newDomain = getNewDomain(newPos, domain);
-                    viewableDomain = getViewableDomain(newDomain);
-                    ticks = getTenAndHundredTicks(viewableDomain[0],viewableDomain[1]);
+                    oldViewableDomain = getViewableDomain(oldDomain);
+                    newViewableDomain = getViewableDomain(newDomain);
 
                     d3.select("svg").remove();
                     var width = 960,
-                        height = 500;
+                        height = 310;
 
                     var x = d3.scale.linear()
-                        .domain(viewableDomain)
+                        .domain(newViewableDomain)
                         .range([0, width]);
-
-                    var discreteX = d3.scale.quantile()
-                        .domain([1,2,3,4,5,6,7,8,9,10,11,12])
-                        .range([0, width]);
-
-                    console.log(discreteX.quantiles());
 
                     var xAxis = d3.svg.axis()
                         .scale(x)
                         .ticks(0);
 
-                    var svg = d3.select("div").append("svg")
+                    console.log(oldViewableDomain);
+                    var oldx = d3.scale.linear()
+                        .domain(oldViewableDomain)
+                        .range([0, width]);
+
+                    var oldxAxis = d3.svg.axis()
+                        .scale(oldx)
+                        .ticks(0);
+
+                    var svg = d3.select("number-line").append("svg")
                         .attr("width", width)
                         .attr("height", height)
                         .append("g")
                         .attr("transform", "translate(0,200)");
 
+                    svg.append("rect")
+                        .attr("x", oldx(oldPos))
+                        .attr("y", -500)
+                        .attr("width", 1)
+                        .attr("height", 1000)
+                        .style("fill", "red")
+                        .transition()
+                        .attr("x", x(newPos))
+                        .duration(500);
+
+
+                    var numberTexts = [{value: newVals.vals.sign,
+                                name: 'sign'},
+                               {value: newVals.vals.units,
+                                name: 'unit'},
+                               {value: '.',
+                                name: 'decimal'},
+                               {value: newVals.vals.tenths,
+                                name: 'tenth'},
+                               {value: newVals.vals.hundredths,
+                                name: 'hundredth'}];
+                    svg.selectAll("text")
+                        .data(numberTexts)
+                        .enter()
+                        .append("text")
+                        .attr("x", function(d, i) { return ((width/2)-(32*(Math.ceil(numberTexts.length/2)))) + (i*32); })
+                        .attr("y", function(d, i) { return 80; })
+                        .attr("dy", ".35em")
+                        .attr("class", function(d) {return "main " + d.name;})
+                        .text(function(d) { return String(d.value); });
+
+                    digitChange(newVals.vals, oldVals.vals).forEach(function(clazz) {
+                        svg.select("."+clazz)
+                            .transition()
+                            .duration(0)
+                            .attr("fill", "red")
+                            .transition().duration(500)
+                            .attr("fill", "black")
+                            .transition().delay(1000).duration(1000);
+                    });
+
+
                     var gAxis = svg.append("g")
                         .attr("class", "x axis")
                         .call(xAxis);
 
-                    gAxis.selectAll("line").data(ticks[0], function(d) { return d; })
-                        .enter()
-                        .append("line")
-                        .attr("class", "major")
-                        .attr("y1", 0)
-                        .attr("y2", -60)
-                        .attr("x1", x)
-                        .attr("x2", x);
-
-                    gAxis.selectAll("line").data(ticks[1], function(d) { return d; })
-                        .enter()
-                        .append("line")
-                        .attr("class", "major")
-                        .attr("y1", 0)
-                        .attr("y2", -40)
-                        .attr("x1", x)
-                        .attr("x2", x);
-
-                    gAxis.selectAll("line").data(ticks[2], function(d) { return d; })
-                        .enter()
-                        .append("line")
-                        .attr("class", "minor")
-                        .attr("y1", 0)
-                        .attr("y2", -20)
-                        .attr("x1", x)
-                        .attr("x2", x);
+                    drawTicks(gAxis, x, newViewableDomain);
 
 
-                    svg.append("rect")
-                        .attr("x", x(oldPos))
-                        .attr("width", 1)
-                        .attr("height", 500)
-                        .style("fill", "red")
-                        .transition()
-                        .attr("x", x(newPos))
-                        .duration(500)
-                        .delay(500);
 
-                    svg.selectAll("text")
-                        .data([newVals.units, '.', newVals.tenths, newVals.hundredths])
-                        .enter()
-                        .append("text")
-                        .attr("x", function(d, i) { return 350 + (i*32); })
-                        .attr("y", function(d, i) { return 150; })
-                        .attr("dy", ".35em")
-                        .text(function(d) { return d; });
-
-                    transition(x, xAxis, gAxis,
-                               getViewableDomain(oldDomain),
-                               getViewableDomain(newDomain));
+                        /*
+                    transition(svg, x, xAxis, gAxis,
+                               oldViewableDomain,
+                               newViewableDomain);
+                               */
                 };
                 scope.$watch(attrs.binding, function (newVals, oldVals) {
                     return scope.render(newVals, oldVals);
