@@ -197,7 +197,7 @@ angular.module('d3Directives').directive(
                         .data(numberTexts)
                         .enter()
                         .append("text")
-                        .attr("x", function(d, i) { return ((width/2)-(32*(Math.ceil(numberTexts.length/2)))) + (i*32); })
+                        .attr("x", function(d, i) { return ((width/2)-(36*(Math.ceil(numberTexts.length/2)))) + (i*42); })
                         .attr("y", function(d, i) { return 80; })
                         .attr("dy", ".35em")
                         .attr("class", function(d) {return "main " + d.name;})
@@ -208,9 +208,9 @@ angular.module('d3Directives').directive(
                             .transition()
                             .duration(0)
                             .attr("fill", "red")
-                            .transition().duration(500)
+                            .transition().duration(2000)
                             .attr("fill", "black")
-                            .transition().delay(1000).duration(1000);
+                            .transition().delay(2000).duration(1000);
                     });
 
 
