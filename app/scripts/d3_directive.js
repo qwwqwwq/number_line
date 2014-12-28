@@ -36,23 +36,28 @@ angular.module('d3Directives').directive(
                 }
 
                 function getTenAndHundredTicks(min, max) {
+                    var N = 1000;
                     var units = [];
                     var tens = [];
                     var hundreds = [];
+                    var thousands = [];
                     var cursor, new_max;
-                    cursor = Math.round(min*100);
-                    new_max = Math.round(max*100);
+                    cursor = Math.round(min*N);
+                    new_max = Math.round(max*N);
                     while(cursor <= new_max) {
-                        if(!(cursor % 100)) {
-                            units.push(cursor/100);
+                        if(!(cursor % N)) {
+                            units.push(cursor/N);
                         }
-                        if(!(cursor % 10)) {
-                            tens.push(cursor/100);
+                        if(!(cursor % (N/10))) {
+                            tens.push(cursor/N);
                         }
-                        hundreds.push(cursor/100);
+                        if(!(cursor % (N/100))) {
+                            hundreds.push(cursor/N);
+                        }
+                        thousands.push(cursor/N);
                         cursor += 1
                     }
-                    return [units, tens, hundreds];
+                    return [units, tens, hundreds, thousands];
                 }
 
                 function getViewableDomain(_domain) {
@@ -78,19 +83,40 @@ angular.module('d3Directives').directive(
                         .attr("x2", x);
                 }
 
+                function setDiff(A, B) {
+                    return A.filter(function(x) { return B.indexOf(x) < 0 });
+                }
+
                 function drawTicks(gAxis, x, domain) {
                     ticks = getTenAndHundredTicks(domain[0],domain[1]);
                     drawTickSet(gAxis, x, ticks[0], 60, "major");
                     drawTickSet(gAxis, x, ticks[1], 40, "");
                     drawTickSet(gAxis, x, ticks[2], 20, "minor");
+                    drawTickSet(gAxis, x, ticks[3], 10, "micro");
 
                     gAxis.selectAll("text").data(ticks[0], function(d) { return d; })
                         .enter()
                         .append("text")
                         .text(function(d) {return d;})
-                        .attr("class", "axis")
+                        .attr("class", "label-major")
                         .attr("y", 20)
                         .attr("x", function(d) { return x( d ) - 4 });
+
+                    if(ticks[1].length <= 30) {
+                        gAxis.selectAll("text").data(setDiff(ticks[1], ticks[0]), function (d) {
+                            return d;
+                        })
+                            .enter()
+                            .append("text")
+                            .text(function (d) {
+                                      return d;
+                                  })
+                            .attr("class", "label-minor")
+                            .attr("y", 20)
+                            .attr("x", function (d) {
+                                      return x(d) - 10
+                                  });
+                    }
                 }
 
                 function transition(svg, x, xAxis, gAxis, domain0, domain1) {
@@ -132,6 +158,10 @@ angular.module('d3Directives').directive(
 
                     if( newVals.hundredths != oldVals.hundredths) {
                         output.push('hundredth');
+                    }
+
+                    if( newVals.thousandths != oldVals.thousandths) {
+                        output.push('thousandth');
                     }
 
                     return output;
@@ -192,12 +222,14 @@ angular.module('d3Directives').directive(
                                {value: newVals.vals.tenths,
                                 name: 'tenth'},
                                {value: newVals.vals.hundredths,
-                                name: 'hundredth'}];
+                                name: 'hundredth'},
+                               {value: newVals.vals.thousandths,
+                                name: 'thousandth'}];
                     svg.selectAll("text")
                         .data(numberTexts)
                         .enter()
                         .append("text")
-                        .attr("x", function(d, i) { return ((width/2)-(36*(Math.ceil(numberTexts.length/2)))) + (i*42); })
+                        .attr("x", function(d, i) { return ((width/2)-(36)-(36*(Math.ceil(numberTexts.length/2)))) + (i*42); })
                         .attr("y", function(d, i) { return 80; })
                         .attr("dy", ".35em")
                         .attr("class", function(d) {return "main " + d.name;})

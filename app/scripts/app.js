@@ -14,14 +14,16 @@ var App = angular.module('App', ['d3Directives', 'ngRoute'])
 App.controller('NumberLineController', ['$scope',
     function($scope) {
         function decimalToVals(number) {
-            var units, tenths, hundredths, sign;
-            number = Math.round(number*100);
+            var units, tenths, hundredths, thousandths, sign;
+            number = Math.round(number*1000);
             if( number < 0 ) {
                 sign = "-";
                 number = number * -1;
             } else if (number >= 0) {
                 sign = "";
             }
+            thousandths = Math.round((number % 10));
+            number = Math.round((number - thousandths)/10);
             hundredths = Math.round((number % 10));
             number = Math.round((number - hundredths)/10);
             tenths = Math.round((number % 10));
@@ -30,6 +32,7 @@ App.controller('NumberLineController', ['$scope',
             return {units: units,
                     tenths: tenths,
                     hundredths: hundredths,
+                    thousandths: thousandths,
                     sign: sign}
         }
 
@@ -38,6 +41,7 @@ App.controller('NumberLineController', ['$scope',
                 units: 0,
                 tenths: 0,
                 hundredths: 0,
+                thousandths: 0,
                 sign: ""
             },
             number: 0

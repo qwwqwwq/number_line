@@ -1,5 +1,9 @@
-.axis text {
+.label-major {
     font: 16px sans-serif;
+}
+
+.label-minor {
+    font: 13px sans-serif;
 }
 
 .axis line,
@@ -8,6 +12,11 @@
     stroke: #000;
     shape-rendering: crispEdges;
     stroke-width: 1.5px;
+}
+
+.axis .micro {
+    stroke: #aaa;
+    stroke-width: 0.5px;
 }
 
 .axis .minor {
@@ -21,4 +30,8 @@
 
 .main {
     font: bold 64px monospace;
+}
+
+.full-button {
+    width: 100%;
 }
